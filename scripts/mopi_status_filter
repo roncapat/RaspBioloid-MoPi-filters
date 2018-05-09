@@ -2,22 +2,33 @@
 
 import rospy
 from std_msgs.msg import Float32
+from std_srvs.srv import Trigger, TriggerResponse
 
 prev = 0.0
 pub = None
 
-def callback(mes):
+def sub_callback(mes):
     global prev
     global pub
     if mes.data != prev:
         pub.publish(mes.data)
         prev = mes.data
 
+def trigger_callback(srv):
+	global prev
+	global pub
+	pub.publish(prev)
+	resp = TriggerResponse()
+	resp.success = True
+	resp.message = "The current cached measure has been published successfully"
+	return resp
+
 def main():
 	global pub
+	rospy.init_node("mopi_status_filter", anonymous=True)
+	s = rospy.Service('mopi_status_trigger', Trigger, trigger_callback)
 	pub = rospy.Publisher('battery_lvl_filtered', Float32, queue_size=1)
-	rospy.init_node("publisher", anonymous=True)
-	rospy.Subscriber("battery_lvl", Float32, callback)
+	rospy.Subscriber("battery_lvl", Float32, sub_callback)
 	rospy.spin()
 
 if __name__ == "__main__":
